@@ -302,13 +302,58 @@
     Each object below controls ONE card. You can add as many as you like.
     For image: use a URL or a relative path like "images/skid-circuit.png".
     Leave image: "" to show a custom-designed gradient title card.
+    For the link: use paths: { personal: "<repo>", org: "<repo>" } and the
+    card follows whatever host the site is served from. A plain link: "..."
+    is kept as-is for external URLs (the contact form, for example).
     ================================================================
     */
+
+    /* ================================================================
+       HOST-AWARE LINKS
+       Every game card points at a repo on whatever account/domain this
+       page is served from, so renaming the GitHub account (or the domain
+       moving again) never leaves dead links behind. No hostname is
+       hardcoded below: the origin always comes from the browser.
+       Add another account name to HUB_VARIANTS if you rename again.
+       ================================================================ */
+    const HUB_VARIANTS = {
+      /* first part of the hostname -> which set of repo names to use */
+      "everybodytesting": "org",
+      "everybodysim-testing": "org",
+      "every-sim": "personal",
+      "mywebsitekeepsgettingblocked": "personal",
+      "everybodysim": "personal",
+      "everybody-simulator": "personal"
+    };
+
+    function hubVariant() {
+      const account = location.hostname.split(".")[0].toLowerCase();
+      return HUB_VARIANTS[account] || "personal";
+    }
+
+    /* Where the games sit relative to this page:
+       <account>.github.io serves every project repo at the domain root, so a
+       game lives at origin + "/<repo>/". On a custom domain or inside a
+       folder we keep the folder this page is being served from. */
+    function gamesRoot() {
+      if (/\.github\.io$/i.test(location.hostname)) return location.origin + "/";
+      const folder = location.pathname.split("/").filter(Boolean)[0];
+      return location.origin + "/" + (folder ? folder + "/" : "");
+    }
+
+    /* Resolve one game entry against whatever host is serving this page. */
+    function gameUrl(game) {
+      if (!game.paths) return game.link || "#";
+      const paths = game.paths;
+      const repo = paths[hubVariant()] || paths.personal || paths.org;
+      return repo ? gamesRoot() + repo.replace(/^\/+|\/+$/g, "") + "/" : "#";
+    }
+
     const GAMES = [
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/Racing-game",
+        paths: { personal: "Racing-game", org: "skidcircuit" },
         image: "icon-512.png",
         icon: "",
         badge: "",
@@ -347,7 +392,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/stair-shove",
+        paths: { personal: "stair-shove", org: "stair-shove" },
         image: "stairshove.png",
         icon: "",
         badge: "",
@@ -371,7 +416,7 @@
       {
         title: "Polytrack 6",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/Polytrack6",
+        paths: { personal: "Polytrack6", org: "polytrack6" },
         image: "polytrack.png",
         icon: "",
         badge: "",
@@ -395,7 +440,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/sandboxels-modded/",
+        paths: { personal: "sandboxels-modded", org: "sandboxels-modded" },
         image: "sandboxels.png",
         icon: "",
         badge: "",
@@ -419,7 +464,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/eaglercraft/",
+        paths: { personal: "eaglercraft", org: "eaglercraft" },
         image: "craft.png",
         icon: "",
         badge: "",
@@ -443,7 +488,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/DriftBoss/",
+        paths: { personal: "DriftBoss", org: "DriftBoss" },
         image: "drift.png",
         icon: "",
         badge: "",
@@ -467,7 +512,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/ovo/",
+        paths: { personal: "ovo", org: "ovo" },
         image: "ovo.png",
         icon: "",
         badge: "",
@@ -491,7 +536,7 @@
       {
         title: "",
         subtitle: "",
-        link: "https://everybody-simulator.github.io/cookieclicker/",
+        paths: { personal: "cookieclicker", org: "clicker" },
         image: "cookie.png",
         icon: "",
         badge: "",
@@ -579,7 +624,8 @@
     GAMES.forEach((game) => {
       const card = document.createElement("a");
       card.className = "game-card";
-      card.href = game.link || "#";
+      const url = gameUrl(game);
+      card.href = url;
       card.setAttribute("aria-label", `Play ${game.title || "game"}`);
       card.dataset.noCaption = String(game.hideCaption === true);
 
@@ -639,7 +685,7 @@
       }
 
       /* Click behavior: use a real link for each card. */
-      if (!game.link || game.link === "#") {
+      if (url === "#") {
         card.addEventListener("click", (event) => event.preventDefault());
       }
       if (game.newTab === true) {
